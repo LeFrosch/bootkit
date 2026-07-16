@@ -1,6 +1,3 @@
-DEBUG ?= 1
-export DEBUG
-
 BUILD_DIR := build
 BIN_DIR   := $(BUILD_DIR)/binaries
 PKG_DIR   := $(BUILD_DIR)/packages
@@ -56,11 +53,10 @@ $(BUILD_DIR) $(PKG_DIR) $(GDB_DIR) $(MOD_DIR) $(EFI_DIR):
 	@mkdir -p $@
 
 all:
-	$(MAKE) -C srcs/uefi all
-	$(MAKE) -C srcs/rkctl all
-	$(MAKE) -C srcs/module all
+	$(MAKE) -C srcs all
 
 clean:
 	rm -rf $(BUILD_DIR)
+	$(MAKE) -C srcs clean
 
 .PHONY: all clean linux-menuconfig linux-shell linux-base linux-modules efi

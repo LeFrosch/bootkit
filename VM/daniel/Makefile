@@ -1,6 +1,6 @@
 BZ_IMAGE  := ../../build/binaries/bzImage
 EFI_IMAGE := ../../srcs/uefi/build/efi.iso
-INITFS    := ../../srcs/init/build/init.cpio
+INIT_CPIO := ../../srcs/init/build/init.cpio
 QEMU      := qemu-system-x86_64
 DISK      := debian.qcow2
 INITRD    := initrd.img-6.12.90+deb13.1-amd64
@@ -33,12 +33,12 @@ $(BZ_IMAGE): FORCE
 	$(MAKE) -C ../../ build/binaries/bzImage
 
 $(EFI_IMAGE): FORCE
-	$(MAKE) -C ../../srcs/uefi build/efi.iso
+	$(MAKE) -C ../../srcs build-uefi.iso
 
-$(INITFS): FORCE
-	$(MAKE) -C ../../srcs/init build/init.cpio
+$(INIT_CPIO): FORCE
+	$(MAKE) -C ../../srcs build-init.cpio
 
-initrd.img: $(INITRD) $(INITFS)
+initrd.img: $(INITRD) $(INIT_CPIO)
 	cat $^ > $@
 
 # qemu interactive targets ######################################################

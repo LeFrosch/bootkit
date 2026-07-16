@@ -5,7 +5,7 @@
 #include "eficall.h"
 #include "grub2.h"
 #include "utils.h"
-#include "cpioarchive.h"
+#include "init.h"
 
 STATIC EFI_STATUS MSAPI GrubLoadFile2Delegate(
     GRUB_LOAD_FILE2_DELEGATE_PROTOCOL* This,
@@ -17,7 +17,7 @@ STATIC EFI_STATUS MSAPI GrubLoadFile2Delegate(
     if (Buffer == NULL) {
         CONST AUTO Status = GrubLoadFile2(This, FilePath, BootPolicy, BufferSize, NULL);
         if (Status == EFI_BUFFER_TOO_SMALL) {
-            *BufferSize += gCpioArchive.Size;
+            *BufferSize += init_archive_len;
         }
 
         return Status;
@@ -29,8 +29,8 @@ STATIC EFI_STATUS MSAPI GrubLoadFile2Delegate(
         return Status;
     }
 
-    EfiCopyMem((UINT8*)Buffer + ActualSize, gCpioArchive.Buffer, gCpioArchive.Size);
-    *BufferSize = ActualSize + gCpioArchive.Size;
+    EfiCopyMem((UINT8*)Buffer + ActualSize, init_archive, init_archive_len);
+    *BufferSize = ActualSize + init_archive_len;
 
     Log("Modified initrd Image (%d -> %d)", ActualSize, *BufferSize);
 
@@ -42,7 +42,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
 
     InitializeLib(ImageHandle, SystemTable);
 
-    Log(L"Preparing GRUB environemnt...");
+    Log(L"Preparing GRUB environment...");
 
     Status = GrubInstallLoadFile2Delegate(GrubLoadFile2Delegate);
     if (EFI_ERROR(Status)) {

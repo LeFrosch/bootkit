@@ -1,5 +1,5 @@
 SRCS := $(wildcard *.c)
-HDRS := $(wildcard *.h) $(wildcard ../shared/*.h)
+HDRS := $(wildcard *.h) $(wildcard ../shared/*.h) ../build/init.h
 
 # docker build ################################################################
 BUILD_DIR  := build
@@ -15,17 +15,13 @@ docker-image:
 	$(MAKE) -C $(realpath $(CURDIR)/../..) efi
 
 $(BUILD_DIR)/app.efi: $(SRCS) $(HDRS) docker-image
-	$(MAKE) -C ../init all
 	@mkdir -p $(BUILD_DIR)
 	@cp -f -r $(SRCS) $(HDRS) Makefile $(BUILD_DIR)	
-	@cp -f ../init/build/init.h $(BUILD_DIR)
 	$(DOCKER_RUN) make -j8 app.efi
 
 $(BUILD_DIR)/efi.iso: $(SRCS) $(HDRS) docker-image
-	$(MAKE) -C ../init all
 	@mkdir -p $(BUILD_DIR)
 	@cp -f -r $(SRCS) $(HDRS) Makefile $(BUILD_DIR)
-	@cp -f ../init/build/init.h $(BUILD_DIR)
 	$(DOCKER_RUN) make -j8 efi.iso
 	
 # regular make build ##########################################################

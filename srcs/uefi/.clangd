@@ -13,6 +13,7 @@ CompileFlags:
     - -Werror 
     - -std=c23 
     - -I../shared
+    - -I../build
     - -I../../gnu-efi/inc
     - --target=x86_64-linux-gnu
     - -DLOGGING

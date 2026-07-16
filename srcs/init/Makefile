@@ -1,5 +1,5 @@
 SRCS := $(wildcard *.c)
-HDRS := $(filter-out init.h, $(wildcard *.h)) $(wildcard ../shared/*.h)
+HDRS := $(wildcard *.h) $(wildcard ../shared/*.h)
 
 # docker build ################################################################
 BUILD_DIR  := build
@@ -22,11 +22,6 @@ $(BUILD_DIR)/init.cpio: $(SRCS) $(HDRS) docker-image
 	@mkdir -p $(BUILD_DIR)
 	@cp -f -r $(SRCS) $(HDRS) Makefile $(BUILD_DIR)
 	$(DOCKER_RUN) make -j8 init.cpio
-
-$(BUILD_DIR)/init.h: $(SRCS) $(HDRS) docker-image
-	@mkdir -p $(BUILD_DIR)
-	@cp -f -r $(SRCS) $(HDRS) Makefile $(BUILD_DIR)
-	$(DOCKER_RUN) make -j8 init.h
 
 # regular make build ###########################################################
 CC          := musl-gcc
@@ -59,13 +54,10 @@ init.cpio: init
 	# actually create the cpio archive
 	(cd cpio && find . | cpio -o -H newc) > $@
 
-init.h: init.cpio
-	xxd -i -n init_archive $< $@
-
 # housekeeping ################################################################
 clean:
 	rm -rf $(BUILD_DIR) 
 
-all: $(BUILD_DIR)/init $(BUILD_DIR)/init.h
+all: $(BUILD_DIR)/init $(BUILD_DIR)/init.cpio
 
 .PHONY: all clean docker-image

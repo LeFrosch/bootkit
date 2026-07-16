@@ -18,5 +18,6 @@
 #else
 
 #define log(msg, ...)
+#define Log(msg, ...)
 
 #endif
