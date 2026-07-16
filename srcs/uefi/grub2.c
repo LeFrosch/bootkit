@@ -1,39 +1,69 @@
 #include <efi.h>
 #include <efiapi.h>
 
-#include "grub2.h"
-#include "utils.h"
 #include "eficall.h"
+#include "efidef.h"
+#include "efidevp.h"
+#include "grub2.h"
+#include "legacy/efilib.h"
+#include "utils.h"
 
-// copied from the GRUB2 sources (include/grub/efi/api.h:152)
-STATIC EFI_GUID gGrubEfiLoadFile2ProtocolGuid = {
-    0x4006c0c1,
-    0xfcb3,
-    0x403e,
-    {0x99, 0x6d, 0x4a, 0x6c, 0x87, 0x24, 0xe0, 0x6d}
-};
+// copied from include/grub/efi/api.h:377
+#define LINUX_EFI_INITRD_MEDIA_GUID                                                                                    \
+    {                                                                                                                  \
+        0x5568e427,                                                                                                    \
+        0x68fc,                                                                                                        \
+        0x4f3d,                                                                                                        \
+        {0xac, 0x74, 0xca, 0x55, 0x52, 0x31, 0xcc, 0x68},                                                              \
+}
 
-STATIC VOID* gProtocolInstalledRegistration = NULL;
+STATIC EFI_GUID gLinuxEfiInitrdMediaGuid = LINUX_EFI_INITRD_MEDIA_GUID;
+STATIC VOID* gProtocolRegistration = NULL;
 STATIC EFI_EVENT gNotifyEvent;
 
 STATIC VOID MSAPI OnGrubLoadFile2Installed(EFI_EVENT Event, VOID* Context) {
     (VOID) Event;
 
     EFI_STATUS Status = EFI_SUCCESS;
-    AUTO Trampoline = (GRUB_LOAD_FILE2_TRAMPOLINE)Context;
+    AUTO Trampoline = (EFI_LOAD_FILE2_TRAMPOLINE)Context;
 
-    // find the handler that was installed with this event
-    UINTN NumHandles = 0;
-    __FREE_POOL EFI_HANDLE* HandleBuffer = NULL;
-    Status = EfiLocateHandleBuffer(ByRegisterNotify, NULL, gProtocolInstalledRegistration, &NumHandles, &HandleBuffer);
-    if (EFI_ERROR(Status)) {
-        return;
-    }
-
-    for (UINTN i = 0; i < NumHandles; i++) {
-        GRUB_LOAD_FILE2_PROTOCOL* Original = NULL;
-        Status = EfiHandleProtocol(HandleBuffer[i], &gGrubEfiLoadFile2ProtocolGuid, (VOID**)&Original);
+    while (TRUE) {
+        // find the handler that was installed with this event
+        UINTN NumHandles = 0;
+        __FREE_POOL EFI_HANDLE* HandleBuffer = NULL;
+        Status = EfiLocateHandleBuffer(ByRegisterNotify, NULL, gProtocolRegistration, &NumHandles, &HandleBuffer);
         if (EFI_ERROR(Status)) {
+            break;
+        }
+        if (NumHandles != 1) {
+            Log("Expected exactly on protocol to be found for ByRegisterNotify: %d", NumHandles);
+            break;
+        }
+
+        // GRUB registers the LoadFile2 protocol for a special handle that also has a device path protocol
+        EFI_DEVICE_PATH_PROTOCOL* DevicePath = NULL;
+        Status = EfiHandleProtocol(HandleBuffer[0], &DevicePathProtocol, (VOID**)&DevicePath);
+        if (EFI_ERROR(Status)) {
+            continue;
+        }
+
+        // check if the device path is GRUB's
+        if (DevicePath->Type != MEDIA_DEVICE_PATH || DevicePath->SubType != MEDIA_VENDOR_DP) {
+            Log("Skipping device path: 0x%02x 0x%02x", DevicePath->Type, DevicePath->SubType);
+            continue;
+        }
+
+        CONST AUTO VendorGuid = &((VENDOR_DEVICE_PATH*)DevicePath)->Guid;
+        if (CompareGuid(VendorGuid, &gLinuxEfiInitrdMediaGuid) != 0) {
+            Log("Skipping registration for vendor GUID: 0x%x", VendorGuid->Data1);
+            continue;
+        }
+
+        // load the actual LoadFile2 protocol we are interested in
+        EFI_LOAD_FILE2_PROTOCOL* Original = NULL;
+        Status = EfiHandleProtocol(HandleBuffer[0], &LoadFile2Protocol, (VOID**)&Original);
+        if (EFI_ERROR(Status)) {
+            Log("No load file2 path protocol found: %r", Status);
             continue;
         }
 
@@ -42,19 +72,22 @@ STATIC VOID MSAPI OnGrubLoadFile2Installed(EFI_EVENT Event, VOID* Context) {
             continue;
         }
 
-        GRUB_LOAD_FILE2_DELEGATE_PROTOCOL* Delegate = AllocatePool(sizeof(GRUB_LOAD_FILE2_DELEGATE_PROTOCOL));
+        EFI_LOAD_FILE2_DELEGATE_PROTOCOL* Delegate = AllocatePool(sizeof(EFI_LOAD_FILE2_DELEGATE_PROTOCOL));
         Delegate->Trampoline = Trampoline;
         Delegate->Protocol = Original;
 
-        Status = EfiReinstallProtocolInterface(HandleBuffer[i], &gGrubEfiLoadFile2ProtocolGuid, Original, Delegate);
+        Status = EfiReinstallProtocolInterface(HandleBuffer[0], &LoadFile2Protocol, Original, Delegate);
         if (EFI_ERROR(Status)) {
+            Log("Reinstall failed: %r", Status);
             FreePool(Delegate);
             continue;
         }
+
+        Log("Installed GRUB LoadFile2 delegate!");
     }
 }
 
-EFI_STATUS GrubInstallLoadFile2Delegate(GRUB_LOAD_FILE2_TRAMPOLINE Trampoline) {
+EFI_STATUS GrubInstallLoadFile2Delegate(EFI_LOAD_FILE2_TRAMPOLINE Trampoline) {
     EFI_STATUS Status = EFI_SUCCESS;
 
     Status = EfiCreateEvent(EVT_NOTIFY_SIGNAL, TPL_CALLBACK, OnGrubLoadFile2Installed, Trampoline, &gNotifyEvent);
@@ -62,7 +95,7 @@ EFI_STATUS GrubInstallLoadFile2Delegate(GRUB_LOAD_FILE2_TRAMPOLINE Trampoline) {
         return Status;
     }
 
-    Status = EfiRegisterProtocolNotify(&gGrubEfiLoadFile2ProtocolGuid, gNotifyEvent, &gProtocolInstalledRegistration);
+    Status = EfiRegisterProtocolNotify(&LoadFile2Protocol, gNotifyEvent, &gProtocolRegistration);
     if (EFI_ERROR(Status)) {
         return Status;
     }
@@ -76,14 +109,3 @@ EFI_STATUS GrubUninstallLoadFile2Delegate() {
     }
     return EFI_SUCCESS;
 }
-
-EFI_STATUS GrubLoadFile2(
-    GRUB_LOAD_FILE2_DELEGATE_PROTOCOL* This,
-    EFI_DEVICE_PATH* FilePath,
-    BOOLEAN BootPolicy,
-    UINTN* BufferSize,
-    VOID* Buffer
-) {
-    return uefi_call_wrapper(This->Protocol->LoadFile, 5, This->Protocol, FilePath, BootPolicy, BufferSize, Buffer);
-}
-

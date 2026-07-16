@@ -10,7 +10,7 @@
 #define ALIGN_UP_4(size) (((UINTN)(size) + 3) & ~((UINTN)3))
 
 STATIC EFI_STATUS MSAPI GrubLoadFile2Delegate(
-    GRUB_LOAD_FILE2_DELEGATE_PROTOCOL* This,
+    EFI_LOAD_FILE2_DELEGATE_PROTOCOL* This,
     EFI_DEVICE_PATH* FilePath,
     BOOLEAN BootPolicy,
     UINTN* BufferSize,
@@ -18,7 +18,7 @@ STATIC EFI_STATUS MSAPI GrubLoadFile2Delegate(
 ) {
     if (Buffer == NULL) {
         UINTN ImageSize = 0;
-        CONST AUTO Status = GrubLoadFile2(This, FilePath, BootPolicy, &ImageSize, NULL);
+        CONST AUTO Status = EfiLoadFile2(This->Protocol, FilePath, BootPolicy, &ImageSize, NULL);
         if (EFI_ERROR(Status) && Status != EFI_BUFFER_TOO_SMALL) {
             return Status;
         }
@@ -28,12 +28,12 @@ STATIC EFI_STATUS MSAPI GrubLoadFile2Delegate(
     }
 
     UINTN ImageSize = *BufferSize;
-    CONST AUTO Status = GrubLoadFile2(This, FilePath, BootPolicy, &ImageSize, Buffer);
+    CONST AUTO Status = EfiLoadFile2(This->Protocol, FilePath, BootPolicy, &ImageSize, Buffer);
     if (EFI_ERROR(Status)) {
         return Status;
     }
 
-    // some debian images are pedded with 0xCC at the end, this causes some 
+    // some debian images are pedded with 0xCC at the end, this causes some
     // issues with the kernels decompression routine
     UINTN ImageEnd = *BufferSize;
     while (ImageEnd > 0 && ((UINT8*)Buffer)[ImageEnd - 1] == 0xCC) {
@@ -80,6 +80,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     }
 
 end:
+    EfiStall(5000000);
     GrubUninstallLoadFile2Delegate();
     return Status;
 }

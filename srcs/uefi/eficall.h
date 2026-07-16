@@ -156,3 +156,14 @@ EFI_WRAPPER VOID EfiSetMem(
 ) {
     uefi_call_wrapper(BS->SetMem, 3, Buffer, Size, Value);
 }
+
+
+EFI_WRAPPER EFI_STATUS EfiLoadFile2(
+    IN EFI_LOAD_FILE2_PROTOCOL* This,
+    IN EFI_DEVICE_PATH* FilePath,
+    IN BOOLEAN BootPolicy,
+    IN OUT UINTN* BufferSize,
+    IN OUT VOID* Buffer
+) {
+    return uefi_call_wrapper(This->LoadFile, 5, This, FilePath, BootPolicy, BufferSize, Buffer);
+}
