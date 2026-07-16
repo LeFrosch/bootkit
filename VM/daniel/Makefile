@@ -5,6 +5,7 @@ QEMU      := qemu-system-x86_64
 DISK      := debian.qcow2
 INITRD    := initrd.img-6.12.90+deb13.1-amd64
 SHARE_DIR := share
+VARS_FILE := vars.fd
 
 QEMU_FLAGS := \
 	-drive "file=$(DISK),if=virtio,format=qcow2" \
@@ -20,15 +21,23 @@ UNAME := $(shell uname -s)
 
 ifeq ($(UNAME), Darwin)
 	EDK2_FW    := /opt/homebrew/Cellar/qemu/11.0.2/share/qemu/edk2-x86_64-code.fd
+	EDK2_VARS  := /opt/homebrew/Cellar/qemu/11.0.2/share/qemu/edk2-i386-vars.fd
 	QEMU_FLAGS += -drive "format=raw,file=$(EDK2_FW),if=pflash,readonly=on" -machine q35
 else ifeq ($(UNAME), Linux)
 	EDK2_FW    := /usr/share/OVMF/OVMF_CODE.fd
-	QEMU_FLAGS += -drive "format=raw,file=$(EDK2_FW),if=pflash,readonly=on" -machine q35 -enable-kvm 
+	EDK2_VARS  := /usr/share/OVMF/OVMF_VARS.fd
+	QEMU_FLAGS += -drive "format=raw,file=$(EDK2_FW),if=pflash,readonly=on" -machine q35 -enable-kvm
 else
 	$(error Unsupported platform: $(UNAME))
 endif
 
+# create a writable copy of the uefi firmware vars
+QEMU_FLAGS += -drive "format=raw,file=$(VARS_FILE),if=pflash"
+
 # bridge to other builds ########################################################
+$(VARS_FILE):
+	@cp $(EDK2_VARS) $(VARS_FILE)
+
 $(BZ_IMAGE): FORCE
 	$(MAKE) -C ../../ build/binaries/bzImage
 
@@ -42,25 +51,25 @@ initrd.img: $(INITRD) $(INIT_CPIO)
 	cat $^ > $@
 
 # qemu interactive targets ######################################################
-qemu-custom: $(BZ_IMAGE)
+qemu-custom: $(BZ_IMAGE) $(VARS_FILE)
 	$(QEMU) $(QEMU_FLAGS) -s \
 		-kernel $(BZ_IMAGE) \
 		-initrd $(INITRD) \
 		-append "root=/dev/vda2 console=ttyS0"
 
-qemu-initramfs: $(BZ_IMAGE) initrd.img
+qemu-initramfs: $(BZ_IMAGE) initrd.img $(VARS_FILE)
 	$(QEMU) $(QEMU_FLAGS) -s \
 		-kernel $(BZ_IMAGE) \
 		-initrd initrd.img \
 		-append "root=/dev/vda2 console=ttyS0"
 
-qemu-default:
+qemu-default: $(VARS_FILE)
 	$(QEMU) $(QEMU_FLAGS)
 
-qemu-uefi: $(EFI_IMAGE)
+qemu-uefi: $(EFI_IMAGE) $(VARS_FILE)
 	$(QEMU) $(QEMU_FLAGS) -drive file=$(EFI_IMAGE),format=raw,if=none,id=iso -device ide-cd,drive=iso,bootindex=1
 
-qemu-ephermal:
+qemu-ephermal: $(VARS_FILE)
 	$(QEMU) $(QEMU_FLAGS) -snapshot
 
 # housekeeping ################################################################

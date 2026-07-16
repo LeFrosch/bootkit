@@ -17,6 +17,7 @@
         }                                                                                                              \
     } while (false)
 
+// report the error and exit with 1
 [[noreturn]] static inline void error(const char* msg, int err) {
     fprintf(stderr, "ERROR: %s: %s (%d)\n", msg, strerror(err < 0 ? -err : err), err);
     exit(EXIT_FAILURE);
