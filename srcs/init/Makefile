@@ -14,17 +14,17 @@ docker-image:
 
 $(BUILD_DIR)/init: $(SRCS) $(HDRS) docker-image
 	@mkdir -p $(BUILD_DIR)
-	@cp -f -r $(SRCS) $(HDRS) _init.sh Makefile $(BUILD_DIR)
+	@cp -f -r $(SRCS) $(HDRS) Makefile $(BUILD_DIR)
 	$(DOCKER_RUN) make -j8 init
 
 $(BUILD_DIR)/init.cpio: $(SRCS) $(HDRS) docker-image
 	@mkdir -p $(BUILD_DIR)
-	@cp -f -r $(SRCS) $(HDRS) _init.sh Makefile $(BUILD_DIR)
+	@cp -f -r $(SRCS) $(HDRS) Makefile $(BUILD_DIR)
 	$(DOCKER_RUN) make -j8 init.cpio
 
 $(BUILD_DIR)/init.h: $(SRCS) $(HDRS) docker-image
 	@mkdir -p $(BUILD_DIR)
-	@cp -f -r $(SRCS) $(HDRS) _init.sh Makefile $(BUILD_DIR)
+	@cp -f -r $(SRCS) $(HDRS) Makefile $(BUILD_DIR)
 	$(DOCKER_RUN) make -j8 init.h
 
 # regular make build ###########################################################

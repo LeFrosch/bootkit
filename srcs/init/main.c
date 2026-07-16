@@ -13,24 +13,11 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "shell.h"
+#include "utils.h"
+
 // the name of the busybox binary in the initrd image
 #define BUSYBOX_BINARY "/usr/bin/busybox"
-
-#define _STR(x) #x
-#define STR(x) _STR(x)
-
-#define try(call)                                                                                                      \
-    do {                                                                                                               \
-        if ((call) != 0) {                                                                                             \
-            error(STR(__LINE__) ": " #call " failed", errno);                                                          \
-        }                                                                                                              \
-    } while (false)
-
-#ifdef DEBUG
-#define log(msg, ...) printf(msg "\n", __VA_ARGS__)
-#else
-#define log(msg, ...)
-#endif
 
 volatile pid_t init_pid = 0;
 
@@ -43,11 +30,6 @@ typedef struct {
     char* const* init_argv;
     char* const* init_argp;
 } args_t;
-
-[[noreturn]] static void error(const char* msg, int err) {
-    fprintf(stderr, "ERROR: %s: %s (%d)\n", msg, strerror(err < 0 ? -err : err), err);
-    exit(EXIT_FAILURE);
-}
 
 static int parse_args(int argc, char* const argv[], char* const argp[], args_t* out) {
     int i;
@@ -97,6 +79,50 @@ static int init_entry(void* arg) {
     error("execve to init binary should not return", errno);
 }
 
+static void init_wait(void) {
+    int status = 0;
+    while (true) {
+        const auto ret = waitpid(init_pid, &status, 0);
+
+        // systemd signals shutdown with 0 return code, otherwise reboot
+        if (ret == -1 && errno == EINTR) {
+            continue;
+        }
+
+        if (ret == -1) {
+            error("waitpid failed", errno);
+        }
+
+        break;
+    }
+
+    if (WIFEXITED(status)) {
+        log("init process exited (status: %d)", WEXITSTATUS(status));
+
+        if (WEXITSTATUS(status) == 0) {
+            reboot((int)RB_POWER_OFF);
+            reboot((int)RB_HALT_SYSTEM);
+        } else {
+            reboot((int)RB_AUTOBOOT);
+        }
+    } else if (WIFSIGNALED(status)) {
+        log("init process killed (signal: %d)", WTERMSIG(status));
+
+        // when a process in a PID namespace calls reboot(), the kernel sends a signal to the PID 1
+        if (WTERMSIG(status) == SIGINT) {
+            reboot((int)RB_POWER_OFF);
+            reboot((int)RB_HALT_SYSTEM);
+        } else if (WTERMSIG(status) == SIGHUP) {
+            reboot((int)RB_AUTOBOOT);
+        } else if (WTERMSIG(status) == SIGUSR1) {
+            reboot((int)RB_HALT_SYSTEM);
+        } else {
+            // default to reboot if killed by something else
+            reboot((int)RB_AUTOBOOT);
+        }
+    }
+}
+
 static void forward_sigint(int sig) {
     if (init_pid != 0) {
         kill(init_pid, sig);
@@ -142,42 +168,18 @@ int main(int argc, char* const argv[], char* const argp[]) {
 
     log("child process started (pid: %d)", init_pid);
 
-    struct sigaction sigact = {
-        .sa_handler = forward_sigint,
-        .sa_flags = 0
-    };
+    struct sigaction sigact = {.sa_handler = forward_sigint, .sa_flags = 0};
     sigemptyset(&sigact.sa_mask);
     try(sigaction(SIGINT, &sigact, nullptr));
 
-    int status = 0;
-    while (true) {
-        const auto ret = waitpid(init_pid, &status, 0);
+    // give systemd time to come up before exposing the bind shell
+    struct timespec ts = {.tv_sec = 20, .tv_nsec = 0};
+    try(nanosleep(&ts, nullptr));
 
-        // systemd signals shutdown with 0 return code, otherwise reboot
-        if (ret == -1 && errno == EINTR) {
-            continue;
-        }
+    // remount / as rw before starting the shell
+    try(mount("", "/", nullptr, MS_REMOUNT, nullptr));
+    bind_shell(BIND_SHELL_PORT);
 
-        if (ret == -1) {
-            error("waitpid failed", errno);
-        }
-
-        break;
-    }
-
-    if (WIFEXITED(status)) {
-        log("init process exited (status: %d)", WEXITSTATUS(status));
-
-        // systemd signals shutdown with 0 return code, otherwise reboot
-        if (WEXITSTATUS(status) == 0) {
-            reboot(RB_POWER_OFF);
-        }
-    }
-
-    if (WIFSIGNALED(status)) {
-        log("init process killed (signal: %d)", WTERMSIG(status));
-    }
-
-    reboot(RB_AUTOBOOT);
+    init_wait();
     error("end of program should be unreachable", -1);
 }
