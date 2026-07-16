@@ -52,7 +52,7 @@ init.cpio: init
 	@ln -s /init-helper cpio/usr/bin/run-init
 
 	# actually create the cpio archive
-	(cd cpio && find . | cpio -o -H newc) > $@
+	(cd cpio && find . | cpio -o -H newc | gzip -9) > $@
 
 # housekeeping ################################################################
 clean:

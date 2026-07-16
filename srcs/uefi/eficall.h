@@ -84,6 +84,12 @@ EFI_WRAPPER EFI_STATUS EfiCreateEvent(
     return uefi_call_wrapper(BS->CreateEvent, 5, (UINT64)Type, (UINT64)NotifyTpl, (UINT64)NotifyFunction, (UINT64)NotifyContext, (UINT64)Event);
 }
 
+EFI_WRAPPER EFI_STATUS EfiStall(
+    IN UINTN Microseconds
+) {
+    return uefi_call_wrapper(BS->Stall, 1, Microseconds);
+}
+
 EFI_WRAPPER EFI_STATUS EfiInstallProtocolInterface(
     IN OUT EFI_HANDLE *Handle,
     IN EFI_GUID *Protocol,

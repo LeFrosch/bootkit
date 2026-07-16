@@ -70,7 +70,7 @@ qemu-uefi: $(EFI_IMAGE) $(VARS_FILE)
 	$(QEMU) $(QEMU_FLAGS) -drive file=$(EFI_IMAGE),format=raw,if=none,id=iso -device ide-cd,drive=iso,bootindex=1
 
 qemu-ephermal: $(VARS_FILE)
-	$(QEMU) $(QEMU_FLAGS) -snapshot
+	$(QEMU) $(QEMU_FLAGS) -s -snapshot
 
 # housekeeping ################################################################
 FORCE: # forces a target to rebuild every time

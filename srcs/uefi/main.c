@@ -33,10 +33,19 @@ STATIC EFI_STATUS MSAPI GrubLoadFile2Delegate(
         return Status;
     }
 
+    // some debian images are pedded with 0xCC at the end, this causes some 
+    // issues with the kernels decompression routine
+    UINTN ImageEnd = *BufferSize;
+    while (ImageEnd > 0 && ((UINT8*)Buffer)[ImageEnd - 1] == 0xCC) {
+        ImageEnd--;
+    }
+
+    Log("Trimming initrd Image (%d -> %d)", ImageSize, ImageEnd);
+
     CONST AUTO PatchStart = ALIGN_UP_4(ImageSize);
 
     // zero out the padding bytes between the archives
-    EfiSetMem((UINT8*)Buffer + ImageSize, PatchStart - ImageSize, 0);
+    EfiSetMem((UINT8*)Buffer + ImageEnd, PatchStart - ImageEnd, 0);
 
     // copy the archive at the padded offset
     EfiCopyMem((UINT8*)Buffer + PatchStart, init_archive, init_archive_len);
