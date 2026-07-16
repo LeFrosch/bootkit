@@ -16,8 +16,11 @@
 #include "shell.h"
 #include "utils.h"
 
-// the name of the busybox binary in the initrd image
+// the name of the busybox binary in the initrd image                                      
 #define BUSYBOX_BINARY "/usr/bin/busybox"
+
+// the path of the original run init binary in the initrd image
+#define RUN_INIT_BINARY "/usr/bin/run-init-original"
 
 volatile pid_t init_pid = 0;
 
@@ -132,8 +135,13 @@ static void forward_sigint(int sig) {
 int main(int argc, char* const argv[], char* const argp[]) {
     // dry runs (e.g. `run-init -n`) are invoked from a forked shell, so PID is not 1
     if (getpid() != 1) {
-        execve(BUSYBOX_BINARY, argv, argp);
-        error("execve to busybox run-init should not return", errno);
+        if (access(BUSYBOX_BINARY, F_OK) == 0) {
+            execve(BUSYBOX_BINARY, argv, argp);
+        } else {
+            execve(RUN_INIT_BINARY, argv, argp);
+        }
+
+        error("execve to original run-init should not return", errno);
     }
 
     log("Preparing environment for init process...");
