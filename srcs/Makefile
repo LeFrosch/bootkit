@@ -10,13 +10,13 @@ build-init:
 build-init.cpio:
 	$(MAKE) -C init build/init.cpio
 
-build-uefi: $(BUILD_DIR)/init.h
-	$(MAKE) -C uefi build/app.efi
+build-loader: $(BUILD_DIR)/init.h
+	$(MAKE) -C loader build/app.efi
 
-build-uefi.iso: $(BUILD_DIR)/init.h
-	$(MAKE) -C uefi build/efi.iso
+build-loader.iso: $(BUILD_DIR)/init.h
+	$(MAKE) -C loader build/efi.iso
 
-build-rkctl: $(BUILD_DIR)/uefi.h
+build-rkctl: $(BUILD_DIR)/loader.h
 	$(MAKE) -C rkctl build/rkctl
 
 # xxd headers #################################################################
@@ -25,23 +25,23 @@ $(BUILD_DIR)/init.h: build-init.cpio | $(BUILD_DIR)
 	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
 	@rm -f $@.tmp
 
-$(BUILD_DIR)/uefi.h: build-uefi | $(BUILD_DIR)
-	xxd -i -n uefi_binary uefi/build/app.efi $@.tmp
+$(BUILD_DIR)/loader.h: build-loader | $(BUILD_DIR)
+	xxd -i -n loader_binary loader/build/app.efi $@.tmp
 	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
 	@rm -f $@.tmp
 
-headers: $(BUILD_DIR)/init.h $(BUILD_DIR)/uefi.h
+headers: $(BUILD_DIR)/init.h $(BUILD_DIR)/loader.h
 
 # housekeeping ################################################################
 $(BUILD_DIR):
 	@mkdir -p $@
 
-all: headers build-init build-uefi
+all: headers build-init build-loader
 
 clean:
 	rm -rf $(BUILD_DIR)
 	$(MAKE) -C init clean
-	$(MAKE) -C uefi clean
+	$(MAKE) -C loader clean
 	$(MAKE) -C rkctl clean
 
 .PHONY: all clean headers build-init build-init.cpio build-uefi build-uefi.iso

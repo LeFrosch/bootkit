@@ -1,14 +1,14 @@
 #include <errno.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <limits.h>
 
 #include "device_path.h"
 #include "efivar.h"
 #include "install.h"
 #include "load_option.h"
-#include "uefi.h"
+#include "loader.h"
 #include "utils.h"
 
 #define UEFI_APP_NAME "\\mm.efi"
@@ -190,7 +190,7 @@ static int rk_write_binary(const char* boot_path) {
         return errno;
     }
 
-    if (fwrite(uefi_binary, 1, uefi_binary_len, file) != uefi_binary_len) {
+    if (fwrite(loader_binary, 1, loader_binary_len, file) != loader_binary_len) {
         return errno;
     }
 

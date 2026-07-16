@@ -1,5 +1,5 @@
 SRCS := $(wildcard *.c) 
-HDRS := $(wildcard *.h) $(wildcard ../shared/*.h) ../build/uefi.h
+HDRS := $(wildcard *.h) $(wildcard ../shared/*.h) ../build/loader.h
 
 # docker build #################################################################
 BUILD_DIR  := build
@@ -26,7 +26,7 @@ ifeq ($(DEBUG), 1)
 CFLAGS += -O0 -g
 endif
 
-%.o: %.c $(HDRS) uefi.h
+%.o: %.c $(HDRS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 rkctl: $(SRCS:%.c=%.o) 
