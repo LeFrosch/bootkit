@@ -11,7 +11,7 @@
 #include "loader.h"
 #include "utils.h"
 
-#define UEFI_APP_NAME "\\mm.efi"
+#define UEFI_APP_NAME "\\loader.efi"
 #define BOOT_PREFIX "/boot/efi"
 
 static char* derive_uefi_path(const char* debian_file) {
@@ -221,7 +221,7 @@ void rk_install(void) {
     log("Derived BOOT path: %s", boot_path);
 
     __free const load_option_t* rk_option = nullptr;
-    try(rk_create_load_option("RK Bootloader", uefi_path, debian_partition, &rk_option));
+    try(rk_create_load_option("loader", uefi_path, debian_partition, &rk_option));
 
     __free const boot_order_t* rk_boot_order = nullptr;
     try(rk_create_boot_order(&rk_boot_order));

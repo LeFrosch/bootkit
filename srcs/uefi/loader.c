@@ -6,6 +6,7 @@
 #include "grub2.h"
 #include "init.h"
 #include "utils.h"
+#include "service.h"
 
 #define ALIGN_UP_4(size) (((UINTN)(size) + 3) & ~((UINTN)3))
 
@@ -58,12 +59,23 @@ STATIC EFI_STATUS MSAPI GrubLoadFile2Delegate(
     return EFI_SUCCESS;
 }
 
+EFI_STATUS StartService(EFI_HANDLE ParentImageHandle) {
+    EFI_HANDLE Handle = NULL;
+    CONST AUTO Status = EfiImageLoad(FALSE, ParentImageHandle, NULL, service_binary, service_binary_len, &Handle);
+    if (EFI_ERROR(Status)) {
+        Log(L"Failed to load service from memory: %r\n", Status);
+        return Status;
+    }
+
+    return EfiImageStart(Handle, NULL, NULL);
+}
+
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable) {
     EFI_STATUS Status = EFI_SUCCESS;
 
     InitializeLib(ImageHandle, SystemTable);
 
-    Log(L"Preparing GRUB environment...");
+    Log(L"Preparing environment...");
 
     Status = GrubInstallLoadFile2Delegate(GrubLoadFile2Delegate);
     if (EFI_ERROR(Status)) {
@@ -71,9 +83,19 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
         goto end;
     }
 
+    Status = StartService(ImageHandle);
+    if (EFI_ERROR(Status)) {
+        Log(L"Failed to start service: %r\n", Status);
+        goto end;
+    } 
+
+    LibGetVariable(L"BootOrder", &EfiGlobalVariable);
+
+    EfiStall(5000000);
+
     Log(L"Searching for boot loader...");
 
-    Status = BootNext(ImageHandle);
+    Status = BootDebian(ImageHandle);
     if (EFI_ERROR(Status)) {
         Log(L"Could not boot next: %r", Status);
         goto end;

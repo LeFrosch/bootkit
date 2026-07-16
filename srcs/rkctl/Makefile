@@ -26,7 +26,7 @@ ifeq ($(DEBUG), 1)
 CFLAGS += -O0 -g
 endif
 
-%.o: %.c $(HDRS)
+%.o: %.c $(HDRS) loader.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 rkctl: $(SRCS:%.c=%.o) 

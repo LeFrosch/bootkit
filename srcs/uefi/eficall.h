@@ -3,7 +3,17 @@
 #include <efi.h>
 #include <efilib.h>
 
-#include "utils.h"
+/**
+ * The UEFI specification mandates the Microsoft x64 Calling Convention (MS ABI)
+ * for all firmware interactions and protocols on x86_64 architectures.
+ *
+ * Since this program is built with gnu-efi (which uses the standard Linux System V ABI),
+ * any function pointers to/from GRUB must be explicitly marked with the MS ABI.  *
+ *
+ * Not sure why EFIAPI does not expand to __attribute__((ms_abi)), but for some reason
+ * it does not, and thus we need this custom MACRO for GRUB functions.
+ */
+#define MSAPI __attribute__((ms_abi))
 
 #define EFI_WRAPPER STATIC inline __attribute__((unused))
 
@@ -113,6 +123,15 @@ EFI_WRAPPER EFI_STATUS EfiCloseEvent(
 ) {
     return uefi_call_wrapper(BS->CloseEvent, 1, Event);
 }
+
+
+EFI_WRAPPER EFI_STATUS EfiConvertPointer(
+    IN UINTN DebugDisposition,
+    IN OUT VOID **Address
+) {
+    return uefi_call_wrapper(RT->ConvertPointer, 2, DebugDisposition, Address);
+}
+
 
 /**
  * SIMPLE_FILE_SYSTEM_PROTOCOL.
