@@ -24,29 +24,6 @@ EFI_WRAPPER EFI_STATUS EfiImageStart(
     return uefi_call_wrapper(BS->StartImage, 3, ImageHandle, ExitDataSize, ExitData);
 }
 
-
-EFI_WRAPPER EFI_STATUS EfiResetInput(
-    IN SIMPLE_INPUT_INTERFACE* This,
-    IN BOOLEAN ExtendedVerification
-) {
-    return uefi_call_wrapper(This->Reset, 2, This, ExtendedVerification);
-}
-
-EFI_WRAPPER EFI_STATUS EfiWaitForEvent(
-    IN UINTN NumberOfEvents,
-    IN EFI_EVENT* Event,
-    OUT UINTN* Index
-) {
-    return uefi_call_wrapper(BS->WaitForEvent, 3, NumberOfEvents, Event, Index);
-}
-
-EFI_WRAPPER EFI_STATUS EfiReadKeyStroke(
-    IN SIMPLE_INPUT_INTERFACE* This,
-    OUT EFI_INPUT_KEY* Key
-) {
-    return uefi_call_wrapper(This->ReadKeyStroke, 2, This, Key);
-}
-
 /**
  * BOOT_SERVICE.
  *
@@ -105,7 +82,23 @@ EFI_WRAPPER EFI_STATUS EfiCreateEvent(
     return uefi_call_wrapper(BS->CreateEvent, 5, Type, NotifyTpl, NotifyFunction, NotifyContext, Event);
 }
 
+EFI_WRAPPER EFI_STATUS EfiInstallProtocolInterface(
+    IN OUT EFI_HANDLE *Handle,
+    IN EFI_GUID *Protocol,
+    IN EFI_INTERFACE_TYPE InterfaceType,
+    IN VOID *Interface
+) {
+    return uefi_call_wrapper(BS->InstallProtocolInterface, 4, Handle, Protocol, InterfaceType, Interface);
+}
 
+EFI_WRAPPER EFI_STATUS EfiReinstallProtocolInterface(
+    IN EFI_HANDLE Handle,
+    IN EFI_GUID *Protocol,
+    IN VOID *OldInterface,
+    IN VOID *NewInterface
+) {
+    return uefi_call_wrapper(BS->ReinstallProtocolInterface, 4, Handle, Protocol, OldInterface, NewInterface);
+}
 
 /**
  * SIMPLE_FILE_SYSTEM_PROTOCOL.
@@ -143,4 +136,12 @@ EFI_WRAPPER EFI_STATUS EfiCloseFile(
     IN EFI_FILE* This
 ) {
     return uefi_call_wrapper(This->Close, 1, This);
+}
+
+EFI_WRAPPER VOID EfiCopyMem(
+    IN VOID *Destination,
+    IN VOID *Source,
+    IN UINTN Length
+) {
+    uefi_call_wrapper(BS->CopyMem, 3, Destination, Source, Length);
 }

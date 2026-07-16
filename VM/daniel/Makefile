@@ -1,5 +1,6 @@
 BZ_IMAGE  := ../../build/binaries/bzImage
 EFI_IMAGE := ../../srcs/uefi/build/efi.iso
+INITFS    := ../../srcs/init/build/init.cpio
 QEMU      := qemu-system-x86_64
 DISK      := debian.qcow2
 INITRD    := initrd.img-6.12.74+custom-amd64
@@ -34,11 +35,20 @@ $(BZ_IMAGE): FORCE
 $(EFI_IMAGE): FORCE
 	$(MAKE) -C ../../srcs/uefi build/efi.iso
 
+$(INITFS): FORCE
+	$(MAKE) -C ../../srcs/init build/init.cpio
+
 # qemu interactive targets ######################################################
 qemu-custom: $(BZ_IMAGE)
 	$(QEMU) $(QEMU_FLAGS) -s \
 		-kernel $(BZ_IMAGE) \
 		-initrd $(INITRD) \
+		-append "root=/dev/vda2 console=ttyS0"
+
+qemu-initramfs: $(BZ_IMAGE) $(INITFS)
+	$(QEMU) $(QEMU_FLAGS) -s \
+		-kernel $(BZ_IMAGE) \
+		-initrd $(INITFS) \
 		-append "root=/dev/vda2 console=ttyS0"
 
 qemu-default:

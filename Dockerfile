@@ -22,6 +22,10 @@ RUN apt-get update && apt-get install -y \
     xxd \
     mtools \
     xorriso \
+    musl \
+    musl-dev \
+    musl-tools \
+    cpio \
     && rm -rf /var/lib/apt/lists/*
 
 # build the vmlinux binary
