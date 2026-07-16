@@ -13,13 +13,13 @@ build-init.cpio:
 build-service:
 	$(MAKE) -C uefi build/service.efi
 
-build-loader: $(BUILD_DIR)/init.h $(BUILD_DIR)/service.h
+build-loader:$ $(BUILD_DIR)/init.h  $(BUILD_DIR)/service.h
 	$(MAKE) -C uefi build/loader.efi
 
 build-loader.iso: $(BUILD_DIR)/init.h $(BUILD_DIR)/service.h
 	$(MAKE) -C uefi build/loader.iso
 
-build-rkctl: $(BUILD_DIR)/loader.h
+build-rkctl: $(BUILD_DIR)/loader.h 
 	$(MAKE) -C rkctl build/rkctl
 
 # xxd headers #################################################################
@@ -44,12 +44,12 @@ headers: $(BUILD_DIR)/init.h $(BUILD_DIR)/loader.h $(BUILD_DIR)/service.h
 $(BUILD_DIR):
 	@mkdir -p $@
 
-all: headers build-init build-loader
+all: headers build-init build-loader build-rkctl
 
 clean:
 	rm -rf $(BUILD_DIR)
 	$(MAKE) -C init clean
-	$(MAKE) -C loader clean
+	$(MAKE) -C uefi clean
 	$(MAKE) -C rkctl clean
 
 .PHONY: all clean headers build-init build-init.cpio build-uefi build-uefi.iso

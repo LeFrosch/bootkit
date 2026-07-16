@@ -1,5 +1,6 @@
 SRCS := $(filter-out loader.c service.c, $(wildcard *.c))
-HDRS := $(wildcard *.h) $(wildcard ../shared/*.h) ../build/init.h ../build/service.h
+HDRS := $(wildcard *.h) $(wildcard ../shared/*.h) ../build/init.h 
+SERVICE_HDR := ../build/service.h
 
 # docker build ################################################################
 BUILD_DIR  := build
@@ -19,14 +20,14 @@ $(BUILD_DIR)/service.efi: $(SRCS) $(HDRS) docker-image
 	@cp -f -r $(SRCS) $(HDRS) service.c Makefile $(BUILD_DIR)	
 	$(DOCKER_RUN) make -j8 service.efi
 
-$(BUILD_DIR)/loader.efi: $(SRCS) $(HDRS) docker-image
+$(BUILD_DIR)/loader.efi: $(SRCS) $(HDRS)  $(SERVICE_HDR) docker-image
 	@mkdir -p $(BUILD_DIR)
-	@cp -f -r $(SRCS) $(HDRS) loader.c Makefile $(BUILD_DIR)	
+	@cp -f -r $(SRCS) $(HDRS) $(SERVICE_HDR) loader.c Makefile $(BUILD_DIR)	
 	$(DOCKER_RUN) make -j8 loader.efi
 
-$(BUILD_DIR)/loader.iso: $(SRCS) $(HDRS) docker-image
+$(BUILD_DIR)/loader.iso: $(SRCS) $(HDRS)  $(SERVICE_HDR)  docker-image
 	@mkdir -p $(BUILD_DIR)
-	@cp -f -r $(SRCS) $(HDRS) loader.c Makefile $(BUILD_DIR)
+	@cp -f -r $(SRCS) $(HDRS) $(SERVICE_HDR) loader.c Makefile $(BUILD_DIR)
 	$(DOCKER_RUN) make -j8 loader.iso
 	
 # regular make build ##########################################################
