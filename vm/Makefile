@@ -1,6 +1,6 @@
-BZ_IMAGE  := ../../build/binaries/bzImage
-EFI_IMAGE := ../../srcs/uefi/build/efi.iso
-INIT_CPIO := ../../srcs/init/build/init.cpio
+BZ_IMAGE  := ../build/binaries/bzImage
+EFI_IMAGE := ../srcs/uefi/build/efi.iso
+INIT_CPIO := ../srcs/init/build/init.cpio
 QEMU      := qemu-system-x86_64
 DISK      := debian.qcow2
 INITRD    := initrd.img-6.12.90+deb13.1-amd64
@@ -39,13 +39,13 @@ $(VARS_FILE): $(EDK2_VARS)
 	cp $(EDK2_VARS) $(VARS_FILE)
 
 $(BZ_IMAGE): FORCE
-	$(MAKE) -C ../../ build/binaries/bzImage
+	$(MAKE) -C ../ build/binaries/bzImage
 
 $(EFI_IMAGE): FORCE
-	$(MAKE) -C ../../srcs build-uefi.iso
+	$(MAKE) -C ../srcs build-uefi.iso
 
 $(INIT_CPIO): FORCE
-	$(MAKE) -C ../../srcs build-init.cpio
+	$(MAKE) -C ../srcs build-init.cpio
 
 initrd.img: $(INITRD) $(INIT_CPIO)
 	cat $^ > $@
