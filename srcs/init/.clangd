@@ -1,0 +1,14 @@
+CompileFlags:
+  Add:
+    - "-xc"
+    - "-Wall"
+    - "-Wextra"
+    - "-Wpedantic"
+    - "-Wconversion"
+    - "-Werror"
+    - "-Wno-old-style-declaration"
+    - "-std=c23"
+    - "-Og"
+    - "-g"
+    - "-D_GNU_SOURCE"
+    - "-DDEBUG"
