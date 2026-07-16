@@ -62,9 +62,11 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
         goto end;
     }
 
-    Status = BootDebian(ImageHandle);
+    Log(L"Searching for boot loader...");
+
+    Status = BootNext(ImageHandle);
     if (EFI_ERROR(Status)) {
-        Log(L"Could not boot debian: %r", Status);
+        Log(L"Could not boot next: %r", Status);
         goto end;
     }
 

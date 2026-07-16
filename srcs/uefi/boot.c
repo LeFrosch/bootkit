@@ -1,9 +1,11 @@
 #include <efi.h>
 #include <efilib.h>
 
-#include "eficall.h"
-#include "utils.h"
 #include "boot.h"
+#include "eficall.h"
+#include "efierr.h"
+#include "efivar.h"
+#include "utils.h"
 
 EFI_STATUS BootDebian(EFI_HANDLE ParentImageHandle) {
     EFI_STATUS Status = EFI_SUCCESS;
@@ -54,10 +56,36 @@ EFI_STATUS BootDebian(EFI_HANDLE ParentImageHandle) {
     return EFI_NOT_FOUND;
 }
 
-// STATIC EFI_LOAD_OPTION* GetBootOption(UINTN Index) {
-//     CHAR16 Buffer[9];
-//     SPrint(Buffer, sizeof(Buffer), L"Boot%04x", Index);
-//
-//     UINTN DataSize;
-//     return LibGetVariableAndSize(Buffer, &EfiGlobalVariable, &DataSize);
-// }
+EFI_STATUS BootNext(EFI_HANDLE ParentImageHandle) {
+    EFI_STATUS Status = EFI_SUCCESS;
+
+    __FREE_POOL EFI_BOOT_ORDER* BootOrder = NULL;
+    Status = EfiVarBootOrderRead(&BootOrder);
+    if (EFI_ERROR(Status)) {
+        return Status;
+    }
+
+    for (UINT16 i = 1; i < BootOrder->Count; i++) {
+        __FREE_POOL EFI_LOAD_OPTION* Option = NULL;
+        Status = EfiVarLoadOptionRead(BootOrder->Options[i], &Option);
+        if (EFI_ERROR(Status)) {
+            continue;
+        }
+
+        CONST AUTO Path = EfiVarLoadOptionGetPathList(Option);
+
+        EFI_HANDLE BootLoader;
+        Status = EfiImageLoad(FALSE, ParentImageHandle, Path, NULL, 0, &BootLoader);
+        if (EFI_ERROR(Status)) {
+            continue;
+        }
+
+        Log(L"Starting next boot loader (%d): %s", BootOrder->Options[i], EfiVarLoadOptionGetDescription(Option));
+
+        EfiImageStart(BootLoader, NULL, NULL);
+    }
+
+    Log(L"No boot loader could be started (%d).", BootOrder->Count);
+
+    return EFI_NOT_FOUND;
+}
