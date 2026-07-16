@@ -5,10 +5,18 @@
 #include "efivar.h"
 #include "utils.h"
 
-STATIC CHAR16 BootCurrent[10];
+STATIC CHAR16 BootName[10];
+STATIC UINT16 BootIndex;
 
 STATIC EFI_GET_VARIABLE OriginalGetVariable = NULL;
 STATIC EFI_GET_NEXT_VARIABLE_NAME OriginalGetNextVariableName = NULL;
+STATIC EFI_SET_VARIABLE OriginalSetVariable = NULL;
+
+STATIC VOID CopyMem2(VOID* Dst, VOID* Src, UINTN Size) {
+    for (UINTN i = 0; i < Size; i++) {
+        ((UINT8*)Dst)[i] = ((UINT8*)Src)[i];
+    }
+}
 
 STATIC VOID HideBootOrder(UINTN* DataSize, UINT8* Data) {
     if (*DataSize <= sizeof(UINT16)) {
@@ -31,7 +39,7 @@ GetVariableDelegate(CHAR16* VariableName, EFI_GUID* VendorGuid, UINT32* Attribut
     if (StrCmp(VariableName, L"BootOrder") == 0) {
         HideBootOrder(DataSize, Data);
     }
-    if (StrCmp(VariableName, BootCurrent) == 0) {
+    if (StrCmp(VariableName, BootName) == 0) {
         return EFI_NOT_FOUND;
     }
 
@@ -45,7 +53,9 @@ GetNextVariableNameDelegate(UINTN* VariableNameSize, CHAR16* VariableName, EFI_G
     while (TRUE) {
         *VariableNameSize = OriginalSize;
 
-        CONST AUTO Status = uefi_call_wrapper(OriginalGetNextVariableName, 3, VariableNameSize, VariableName, VendorGuid);
+        CONST AUTO Status = uefi_call_wrapper(
+            OriginalGetNextVariableName, 3, VariableNameSize, VariableName, VendorGuid
+        );
         if (EFI_ERROR(Status)) {
             return Status;
         }
@@ -54,20 +64,38 @@ GetNextVariableNameDelegate(UINTN* VariableNameSize, CHAR16* VariableName, EFI_G
             return EFI_SUCCESS;
         }
 
-        if (StrnCmp(VariableName, BootCurrent, 8) != 0) {
+        if (StrnCmp(VariableName, BootName, 8) != 0) {
             return EFI_SUCCESS;
         }
     }
 }
 
+STATIC EFI_STATUS MSAPI
+SetVariableDelegate(CHAR16* VariableName, EFI_GUID* VendorGuid, UINT32 Attributes, UINTN DataSize, VOID* Data) {
+    if (StrCmp(VariableName, L"BootOrder") == 0) {
+        CONST AUTO Size = DataSize + sizeof(UINT16);
+
+        UINT8 Buffer[Size];
+        CopyMem2(Buffer + sizeof(UINT16), Data, DataSize);
+        CopyMem2(Buffer, &BootIndex, sizeof(UINT16));
+
+        return uefi_call_wrapper(OriginalSetVariable, 5, VariableName, VendorGuid, Attributes, Size, Buffer);
+    }
+
+    if (StrCmp(VariableName, BootName)) {
+        return EFI_NOT_FOUND;
+    }
+
+    return uefi_call_wrapper(OriginalSetVariable, 5, VariableName, VendorGuid, Attributes, DataSize, Data);
+}
+
 STATIC EFI_STATUS ReadBootCurrent() {
-    UINT16 Index = 0;
-    CONST AUTO Status = EfiVarBootCurrentRead(&Index);
+    CONST AUTO Status = EfiVarBootCurrentRead(&BootIndex);
     if (EFI_ERROR(Status)) {
         return Status;
     }
 
-    SPrint(BootCurrent, sizeof(BootCurrent), L"Boot%04x", Index);
+    SPrint(BootName, sizeof(BootName), L"Boot%04x", BootIndex);
     return EFI_SUCCESS;
 }
 
@@ -106,8 +134,10 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     RT->GetVariable = (EFI_GET_VARIABLE)(VOID*)GetVariableDelegate;
     OriginalGetNextVariableName = RT->GetNextVariableName;
     RT->GetNextVariableName = (EFI_GET_NEXT_VARIABLE_NAME)(VOID*)GetNextVariableNameDelegate;
+    OriginalSetVariable = RT->SetVariable;
+    RT->SetVariable = (EFI_SET_VARIABLE)(VOID*)SetVariableDelegate;
 
-    Log(L"Runtime service initialized (%s)...", BootCurrent);
+    Log(L"Runtime service initialized (%s)...", BootName);
 
     return Status;
 }
