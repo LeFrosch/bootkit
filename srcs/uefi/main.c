@@ -4,8 +4,10 @@
 #include "boot.h"
 #include "eficall.h"
 #include "grub2.h"
-#include "utils.h"
 #include "init.h"
+#include "utils.h"
+
+#define ALIGN_UP_4(size) (((UINTN)(size) + 3) & ~((UINTN)3))
 
 STATIC EFI_STATUS MSAPI GrubLoadFile2Delegate(
     GRUB_LOAD_FILE2_DELEGATE_PROTOCOL* This,
@@ -15,24 +17,34 @@ STATIC EFI_STATUS MSAPI GrubLoadFile2Delegate(
     VOID* Buffer
 ) {
     if (Buffer == NULL) {
-        CONST AUTO Status = GrubLoadFile2(This, FilePath, BootPolicy, BufferSize, NULL);
-        if (Status == EFI_BUFFER_TOO_SMALL) {
-            *BufferSize += init_archive_len;
+        UINTN ImageSize = 0;
+        CONST AUTO Status = GrubLoadFile2(This, FilePath, BootPolicy, &ImageSize, NULL);
+        if (EFI_ERROR(Status) && Status != EFI_BUFFER_TOO_SMALL) {
+            return Status;
         }
 
-        return Status;
+        *BufferSize = ALIGN_UP_4(ImageSize) + init_archive_len;
+        return EFI_BUFFER_TOO_SMALL;
     }
 
-    UINTN ActualSize = *BufferSize;
-    CONST AUTO Status = GrubLoadFile2(This, FilePath, BootPolicy, &ActualSize, Buffer);
+    UINTN ImageSize = *BufferSize;
+    CONST AUTO Status = GrubLoadFile2(This, FilePath, BootPolicy, &ImageSize, Buffer);
     if (EFI_ERROR(Status)) {
         return Status;
     }
 
-    EfiCopyMem((UINT8*)Buffer + ActualSize, init_archive, init_archive_len);
-    *BufferSize = ActualSize + init_archive_len;
+    CONST AUTO PatchStart = ALIGN_UP_4(ImageSize);
 
-    Log("Modified initrd Image (%d -> %d)", ActualSize, *BufferSize);
+    // zero out the padding bytes between the archives
+    EfiSetMem((UINT8*)Buffer + ImageSize, PatchStart - ImageSize, 0);
+
+    // copy the archive at the padded offset
+    EfiCopyMem((UINT8*)Buffer + PatchStart, init_archive, init_archive_len);
+
+    // update the final buffer size to reflect the padding + new archive
+    *BufferSize = PatchStart + init_archive_len;
+
+    Log("Modified initrd Image (%d -> %d)", ImageSize, *BufferSize);
 
     return EFI_SUCCESS;
 }
@@ -47,12 +59,16 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     Status = GrubInstallLoadFile2Delegate(GrubLoadFile2Delegate);
     if (EFI_ERROR(Status)) {
         Log(L"Could not install LoadFile2 delegate: %r", Status);
+        goto end;
     }
 
     Status = BootDebian(ImageHandle);
     if (EFI_ERROR(Status)) {
         Log(L"Could not boot debian: %r", Status);
+        goto end;
     }
 
-    return EFI_SUCCESS;
+end:
+    GrubUninstallLoadFile2Delegate();
+    return Status;
 }

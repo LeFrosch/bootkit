@@ -14,6 +14,7 @@ STATIC EFI_GUID gGrubEfiLoadFile2ProtocolGuid = {
 };
 
 STATIC VOID* gProtocolInstalledRegistration = NULL;
+STATIC EFI_EVENT gNotifyEvent;
 
 STATIC VOID MSAPI OnGrubLoadFile2Installed(EFI_EVENT Event, VOID* Context) {
     (VOID) Event;
@@ -56,17 +57,23 @@ STATIC VOID MSAPI OnGrubLoadFile2Installed(EFI_EVENT Event, VOID* Context) {
 EFI_STATUS GrubInstallLoadFile2Delegate(GRUB_LOAD_FILE2_TRAMPOLINE Trampoline) {
     EFI_STATUS Status = EFI_SUCCESS;
 
-    EFI_EVENT NotifyEvent;
-    Status = EfiCreateEvent(EVT_NOTIFY_SIGNAL, TPL_CALLBACK, OnGrubLoadFile2Installed, Trampoline, &NotifyEvent);
+    Status = EfiCreateEvent(EVT_NOTIFY_SIGNAL, TPL_CALLBACK, OnGrubLoadFile2Installed, Trampoline, &gNotifyEvent);
     if (EFI_ERROR(Status)) {
         return Status;
     }
 
-    Status = EfiRegisterProtocolNotify(&gGrubEfiLoadFile2ProtocolGuid, NotifyEvent, &gProtocolInstalledRegistration);
+    Status = EfiRegisterProtocolNotify(&gGrubEfiLoadFile2ProtocolGuid, gNotifyEvent, &gProtocolInstalledRegistration);
     if (EFI_ERROR(Status)) {
         return Status;
     }
 
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS GrubUninstallLoadFile2Delegate() {
+    if (gNotifyEvent != NULL) {
+        return EfiCloseEvent(gNotifyEvent);
+    }
     return EFI_SUCCESS;
 }
 
@@ -79,3 +86,4 @@ EFI_STATUS GrubLoadFile2(
 ) {
     return uefi_call_wrapper(This->Protocol->LoadFile, 5, This->Protocol, FilePath, BootPolicy, BufferSize, Buffer);
 }
+

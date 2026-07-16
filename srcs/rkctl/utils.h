@@ -1,9 +1,9 @@
 #pragma once
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
 #include "log.h"
 
@@ -14,8 +14,9 @@
 // exits if the call returns non-zero
 #define try(call)                                                                                                      \
     do {                                                                                                               \
-        if ((call) != 0) {                                                                                             \
-            error(STR(__LINE__) ": " #call " failed", errno);                                                          \
+        const auto __ret = call;                                                                                       \
+        if (__ret != 0) {                                                                                              \
+            error(STR(__LINE__) ": " #call " failed", __ret);                                                          \
         }                                                                                                              \
     } while (false)
 
@@ -33,7 +34,6 @@ static void __attribute__((unused)) auto_close_file(const void* ptr) {
 }
 
 #define __close_file __attribute__((cleanup(auto_close_file)))
-
 
 static void __attribute__((unused)) auto_free(const void* ptr) {
     const auto file = *(void**)ptr;

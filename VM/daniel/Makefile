@@ -35,8 +35,8 @@ endif
 QEMU_FLAGS += -drive "format=raw,file=$(VARS_FILE),if=pflash"
 
 # bridge to other builds ########################################################
-$(VARS_FILE):
-	@cp $(EDK2_VARS) $(VARS_FILE)
+$(VARS_FILE): $(EDK2_VARS)
+	cp $(EDK2_VARS) $(VARS_FILE)
 
 $(BZ_IMAGE): FORCE
 	$(MAKE) -C ../../ build/binaries/bzImage

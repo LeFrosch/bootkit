@@ -37,6 +37,8 @@ typedef struct _GRUB_EFI_LOAD_FILE2_DELEGATE_PROTOCOL {
 
 EFI_STATUS GrubInstallLoadFile2Delegate(GRUB_LOAD_FILE2_TRAMPOLINE Trampoline);
 
+EFI_STATUS GrubUninstallLoadFile2Delegate();
+
 EFI_STATUS GrubLoadFile2(
     GRUB_LOAD_FILE2_DELEGATE_PROTOCOL* This,
     EFI_DEVICE_PATH* FilePath,
@@ -44,3 +46,4 @@ EFI_STATUS GrubLoadFile2(
     UINTN* BufferSize,
     VOID* Buffer
 );
+

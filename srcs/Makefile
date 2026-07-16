@@ -26,17 +26,17 @@ $(BUILD_DIR)/init.h: build-init.cpio | $(BUILD_DIR)
 	@rm -f $@.tmp
 
 $(BUILD_DIR)/uefi.h: build-uefi | $(BUILD_DIR)
-	xxd -i -n uefi_archive uefi/build/app.efi $@.tmp
+	xxd -i -n uefi_binary uefi/build/app.efi $@.tmp
 	@cmp -s $@.tmp $@ || mv -f $@.tmp $@
 	@rm -f $@.tmp
 
-header: $(BUILD_DIR)/init.h $(BUILD_DIR)/uefi.h
+headers: $(BUILD_DIR)/init.h $(BUILD_DIR)/uefi.h
 
 # housekeeping ################################################################
 $(BUILD_DIR):
 	@mkdir -p $@
 
-all: header build-init build-uefi
+all: headers build-init build-uefi
 
 clean:
 	rm -rf $(BUILD_DIR)
@@ -44,4 +44,4 @@ clean:
 	$(MAKE) -C uefi clean
 	$(MAKE) -C rkctl clean
 
-.PHONY: all clean build-init build-init.cpio build-uefi build-uefi.iso
+.PHONY: all clean headers build-init build-init.cpio build-uefi build-uefi.iso

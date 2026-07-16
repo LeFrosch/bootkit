@@ -102,6 +102,12 @@ EFI_WRAPPER EFI_STATUS EfiReinstallProtocolInterface(
     return uefi_call_wrapper(BS->ReinstallProtocolInterface, 4, Handle, Protocol, OldInterface, NewInterface);
 }
 
+EFI_WRAPPER EFI_STATUS EfiCloseEvent(
+    IN EFI_EVENT Event
+) {
+    return uefi_call_wrapper(BS->CloseEvent, 1, Event);
+}
+
 /**
  * SIMPLE_FILE_SYSTEM_PROTOCOL.
  *
@@ -135,4 +141,12 @@ EFI_WRAPPER VOID EfiCopyMem(
     IN UINTN Length
 ) {
     uefi_call_wrapper(BS->CopyMem, 3, Destination, Source, Length);
+}
+
+EFI_WRAPPER VOID EfiSetMem(
+    IN VOID *Buffer,
+    IN UINTN Size,
+    IN UINT8 Value
+) {
+    uefi_call_wrapper(BS->SetMem, 3, Buffer, Size, Value);
 }

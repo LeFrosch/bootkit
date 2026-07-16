@@ -1,14 +1,57 @@
-#include "install.h"
 #include <errno.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
-#include <sys/errno.h>
+#include <limits.h>
 
 #include "device_path.h"
 #include "efivar.h"
-#include "load_option.h"
-#include "utils.h"
 #include "install.h"
+#include "load_option.h"
+#include "uefi.h"
+#include "utils.h"
+
+#define UEFI_APP_NAME "\\mm.efi"
+#define BOOT_PREFIX "/boot/efi"
+
+static char* derive_uefi_path(const char* debian_file) {
+    const char* slash = strrchr(debian_file, '\\');
+    if (slash == nullptr) {
+        slash = strrchr(debian_file, '/');
+    }
+    if (slash == nullptr) {
+        return strdup(UEFI_APP_NAME);
+    }
+
+    const auto dir_len = (size_t)(slash - debian_file);
+
+    auto path = (char*)malloc(dir_len + strlen(UEFI_APP_NAME) + 1);
+    if (path == nullptr) {
+        return nullptr;
+    }
+
+    strncpy(path, debian_file, dir_len);
+    strcpy(path + dir_len, UEFI_APP_NAME);
+
+    return path;
+}
+
+static char* derive_boot_path(const char* uefi_path) {
+    auto path = (char*)malloc(PATH_MAX);
+    if (path == nullptr) {
+        return nullptr;
+    }
+
+    snprintf(path, PATH_MAX, "/boot/efi%s", uefi_path);
+
+    for (char* p = path; *p != '\0'; p++) {
+        if (*p == '\\') {
+            *p = '/';
+        }
+    }
+
+    return path;
+}
 
 static int find_debian_load_option(const load_option_t** out) {
     int ret = 0;
@@ -29,6 +72,7 @@ static int find_debian_load_option(const load_option_t** out) {
         __free const auto description = load_option_get_description(option);
         if (strstr(description, "debian") == nullptr) {
             free((void*)option);
+            continue;
         }
 
         *out = option;
@@ -127,7 +171,7 @@ static int rk_create_boot_order(const boot_order_t** out) {
 
     const auto size = sizeof(boot_order_t) + sizeof(uint16_t) * (boot_order->count + 1);
 
-    auto upated_order = (boot_order_t*) malloc(size);
+    auto upated_order = (boot_order_t*)malloc(size);
     if (upated_order == nullptr) {
         return -ENOMEM;
     }
@@ -137,6 +181,19 @@ static int rk_create_boot_order(const boot_order_t** out) {
     memcpy(upated_order->options + 1, boot_order->options, sizeof(uint16_t) * boot_order->count);
 
     *out = upated_order;
+    return 0;
+}
+
+static int rk_write_binary(const char* boot_path) {
+    __close_file const auto file = fopen(boot_path, "wb");
+    if (file == nullptr) {
+        return errno;
+    }
+
+    if (fwrite(uefi_binary, 1, uefi_binary_len, file) != uefi_binary_len) {
+        return errno;
+    }
+
     return 0;
 }
 
@@ -154,8 +211,17 @@ void rk_install(void) {
 
     log("Debian load option is valid!");
 
+    __free const char* uefi_path = derive_uefi_path(debian_file);
+    __free const char* boot_path = derive_boot_path(uefi_path);
+    if (uefi_path == nullptr || boot_path == nullptr) {
+        error("failed to derive paths", -ENOMEM);
+    }
+
+    log("Derived UEFI path: %s", uefi_path);
+    log("Derived BOOT path: %s", boot_path);
+
     __free const load_option_t* rk_option = nullptr;
-    try(rk_create_load_option("RK Bootloader", "\\EFI\\app.efi", debian_partition, &rk_option));
+    try(rk_create_load_option("RK Bootloader", uefi_path, debian_partition, &rk_option));
 
     __free const boot_order_t* rk_boot_order = nullptr;
     try(rk_create_boot_order(&rk_boot_order));
@@ -168,4 +234,7 @@ void rk_install(void) {
 
     log("Updating boot order...");
     try(efivar_boot_order_write(rk_boot_order));
+
+    log("Updating binary...");
+    try(rk_write_binary(boot_path));
 }
