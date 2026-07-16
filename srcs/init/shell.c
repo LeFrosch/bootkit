@@ -27,7 +27,7 @@ void bind_shell(uint16_t port) {
     try(bind(fd, (struct sockaddr*)&addr, sizeof(addr)));
     try(listen(fd, 1));
 
-    log("shell listening on 0.0.0.0:%d", port);
+    log("Shell listening on 0.0.0.0:%d", port);
 
     while (true) {
         struct sockaddr_in client_addr = {};

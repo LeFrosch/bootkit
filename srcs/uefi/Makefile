@@ -1,5 +1,5 @@
-SRCS := main.c 
-HDRS := $(wildcard *.h) $(wildcard ../include/*.h)
+SRCS := $(wildcard *.c)
+HDRS := $(wildcard *.h) $(wildcard ../shared/*.h)
 
 # docker build ################################################################
 BUILD_DIR  := build
@@ -7,6 +7,7 @@ EDIR       := /build/efi
 MOUNT      := /build/application
 
 DOCKER_RUN = docker run --rm --platform linux/amd64 \
+	-e DEBUG=$(DEBUG) \
 	-v $(realpath .)/$(BUILD_DIR):$(MOUNT) \
 	-w $(MOUNT) gnu-efi-amd64
 
@@ -32,6 +33,10 @@ CC          := gcc
 CFLAGS 	    := -Wall -Wextra -Wconversion -Werror -Wno-old-style-declaration -std=c23 -fPIC -ffreestanding -fno-stack-protector -fno-stack-check -fshort-wchar -mno-red-zone -maccumulate-outgoing-args -I$(EDIR)/inc 
 LINKFLAGS   := -nostdlib -shared -Wl,-Bsymbolic -L$(EDIR)/x86_64/lib -L$(EDIR)/x86_64/gnuefi -Wl,-T,$(EDIR)/gnuefi/elf_x86_64_efi.lds $(EDIR)/x86_64/gnuefi/crt0-efi-x86_64.o
 OBJFLAGS    := -j .text -j .sdata -j .data -j .rodata -j .dynamic -j .dynsym  -j .rel -j .rela -j .rel.* -j .rela.* -j .reloc --output-target efi-app-x86_64 --subsystem=10
+
+ifeq ($(DEBUG), 1)
+CFLAGS += -DLOGGING -O0 -g
+endif 
 
 %.o: %.c $(HDRS) init.h
 	$(CC) $(CFLAGS) $(EFIFLAGS) -c -o $@ $<

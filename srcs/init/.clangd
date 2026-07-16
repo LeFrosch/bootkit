@@ -8,7 +8,6 @@ CompileFlags:
     - "-Werror"
     - "-Wno-old-style-declaration"
     - "-std=c23"
-    - "-Og"
-    - "-g"
+    - -I../shared
     - "-D_GNU_SOURCE"
-    - "-DDEBUG"
+    - "-DLOGGING"

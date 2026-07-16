@@ -97,7 +97,7 @@ static void init_wait(void) {
     }
 
     if (WIFEXITED(status)) {
-        log("init process exited (status: %d)", WEXITSTATUS(status));
+        log("Init process exited (status: %d)", WEXITSTATUS(status));
 
         if (WEXITSTATUS(status) == 0) {
             reboot((int)RB_POWER_OFF);
@@ -106,7 +106,7 @@ static void init_wait(void) {
             reboot((int)RB_AUTOBOOT);
         }
     } else if (WIFSIGNALED(status)) {
-        log("init process killed (signal: %d)", WTERMSIG(status));
+        log("Init process killed (signal: %d)", WTERMSIG(status));
 
         // when a process in a PID namespace calls reboot(), the kernel sends a signal to the PID 1
         if (WTERMSIG(status) == SIGINT) {
@@ -135,6 +135,8 @@ int main(int argc, char* const argv[], char* const argp[]) {
         execve(BUSYBOX_BINARY, argv, argp);
         error("execve to busybox run-init should not return", errno);
     }
+
+    log("Preparing environment for init process...");
 
     args_t args = {0};
     try(parse_args(argc, argv, argp, &args));

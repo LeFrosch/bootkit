@@ -35,7 +35,7 @@ EFI_STATUS BootDebian(EFI_HANDLE ParentImageHandle) {
             continue;
         }
 
-        Print(L"Found Debian on a filesystem! Booting...\n");
+        Log(L"Found Debian on a filesystem! Booting...");
 
         // build a full Device Path for the debian bootloader
         __FREE_POOL AUTO DevPath = FileDevicePath(HandleBuffer[i], DEBIAN_BOOT_LOADER);
@@ -45,11 +45,11 @@ EFI_STATUS BootDebian(EFI_HANDLE ParentImageHandle) {
         if (!EFI_ERROR(Status)) {
             EfiImageStart(BootLoader, NULL, NULL);
         } else {
-            Print(L"Failed to load Debian image: %r\n", Status);
+            Log(L"Failed to load Debian image: %r", Status);
         }
     }
 
-    Print(L"Could not find " DEBIAN_BOOT_LOADER " on any filesystem.\n");
+    Log(L"Could not find " DEBIAN_BOOT_LOADER " on any filesystem.");
 
     return EFI_NOT_FOUND;
 }

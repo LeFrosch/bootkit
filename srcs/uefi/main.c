@@ -32,6 +32,8 @@ STATIC EFI_STATUS MSAPI GrubLoadFile2Delegate(
     EfiCopyMem((UINT8*)Buffer + ActualSize, gCpioArchive.Buffer, gCpioArchive.Size);
     *BufferSize = ActualSize + gCpioArchive.Size;
 
+    Log("Modified initrd Image (%d -> %d)", ActualSize, *BufferSize);
+
     return EFI_SUCCESS;
 }
 
@@ -40,14 +42,16 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
 
     InitializeLib(ImageHandle, SystemTable);
 
+    Log(L"Preparing GRUB environemnt...");
+
     Status = GrubInstallLoadFile2Delegate(GrubLoadFile2Delegate);
     if (EFI_ERROR(Status)) {
-        Print(L"Could not install LoadFile2 delegate: %r\n", Status);
+        Log(L"Could not install LoadFile2 delegate: %r", Status);
     }
 
     Status = BootDebian(ImageHandle);
     if (EFI_ERROR(Status)) {
-        Print(L"Could not boot debian: %r\n", Status);
+        Log(L"Could not boot debian: %r", Status);
     }
 
     return EFI_SUCCESS;

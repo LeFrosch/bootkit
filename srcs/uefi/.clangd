@@ -12,6 +12,7 @@ CompileFlags:
     - -Wconversion 
     - -Werror 
     - -std=c23 
-    - -I../include
+    - -I../shared
     - -I../../gnu-efi/inc
     - --target=x86_64-linux-gnu
+    - -DLOGGING

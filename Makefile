@@ -1,9 +1,12 @@
+DEBUG ?= 1
+export DEBUG
+
 BUILD_DIR := build
 BIN_DIR   := $(BUILD_DIR)/binaries
 PKG_DIR   := $(BUILD_DIR)/packages
 GDB_DIR   := $(BUILD_DIR)/gdb
 MOD_DIR   := $(BUILD_DIR)/modules
-EFI_DIR  := $(BUILD_DIR)/efi
+EFI_DIR   := $(BUILD_DIR)/efi
 KCONFIG   := config.amd64_none_amd64
 DOCKER    := docker buildx build --platform linux/amd64 --build-arg KCONFIG=$(KCONFIG)
 

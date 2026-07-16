@@ -3,6 +3,8 @@
 #include <efi.h>
 #include <efilib.h>
 
+#include "log.h"
+
 /**
  * The UEFI specification mandates the Microsoft x64 Calling Convention (MS ABI)
  * for all firmware interactions and protocols on x86_64 architectures.

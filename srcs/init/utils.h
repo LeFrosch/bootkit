@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "log.h"
+
 // converts any macro expansion to a string
 #define _STR(x) #x
 #define STR(x) _STR(x)
@@ -14,13 +16,6 @@
             error(STR(__LINE__) ": " #call " failed", errno);                                                          \
         }                                                                                                              \
     } while (false)
-
-// debug logging
-#ifdef DEBUG
-#define log(msg, ...) printf(msg "\n", __VA_ARGS__)
-#else
-#define log(msg, ...)
-#endif
 
 [[noreturn]] static inline void error(const char* msg, int err) {
     fprintf(stderr, "ERROR: %s: %s (%d)\n", msg, strerror(err < 0 ? -err : err), err);
