@@ -27,6 +27,8 @@ EFI_STATUS EfiVarLoadOptionRead(UINT16 Index, EFI_LOAD_OPTION** Out);
 
 EFI_STATUS EfiVarBootCurrentRead(UINT16* Out);
 
+EFI_STATUS EfiVarBootCurrentWrite(UINT16 Value);
+
 CHAR16* EfiVarLoadOptionGetDescription(CONST EFI_LOAD_OPTION* Options);
 
 EFI_DEVICE_PATH* EfiVarLoadOptionGetPathList(CONST EFI_LOAD_OPTION* Options);

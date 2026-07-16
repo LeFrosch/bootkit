@@ -60,6 +60,10 @@ EFI_STATUS EfiVarBootCurrentRead(UINT16* Out) {
     return EFI_SUCCESS;
 }
 
+EFI_STATUS EfiVarBootCurrentWrite(UINT16 Value) {
+    return LibSetVariable(L"BootCurrent", &EfiGlobalVariable, sizeof(UINT16), &Value);
+}
+
 CHAR16* EfiVarLoadOptionGetDescription(CONST EFI_LOAD_OPTION* Options) {
     if (Options == NULL) {
         return NULL;

@@ -85,7 +85,8 @@ EFI_STATUS BootNext(EFI_HANDLE ParentImageHandle) {
         return Status;
     }
 
-    for (UINT16 i = 1; i < BootOrder->Count; i++) {
+    // start at 0, our service already hides us from boot order
+    for (UINT16 i = 0; i < BootOrder->Count; i++) {
         __FREE_POOL EFI_LOAD_OPTION* Option = NULL;
         Status = EfiVarLoadOptionRead(BootOrder->Options[i], &Option);
         if (EFI_ERROR(Status)) {
