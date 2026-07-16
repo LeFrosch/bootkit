@@ -1,0 +1,16 @@
+# build directories
+build/
+srcs/uefi/build/
+srcs/rkctl/build/
+srcs/module/build/
+
+# build artifactcs
+*.cmd
+*.o
+*.so
+*.order
+*.mod
+*.mod.c
+*.symvers
+*.efi
+

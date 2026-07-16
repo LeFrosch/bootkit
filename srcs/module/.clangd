@@ -1,0 +1,33 @@
+# Generated kernel headers (include/generated/*, arch/*/include/generated/*)
+# live only inside the linux-modules container, so clangd will flag them as
+# missing until they're extracted to the host.
+CompileFlags:
+  Compiler: clang
+  Add:
+    - -xc
+    - -std=gnu17
+    - --target=x86_64-linux-gnu
+    - -DDEBUG
+    - -DFEATURE_HIDE_MODULE
+    - -DFEATURE_SUDO
+    - -DFEATURE_HIDE_PROC
+    - -DFEATURE_HIDE_OPEN_FILES
+    - -DFEATURE_HIDE_FILES
+    - -DFEATURE_HIDE_SOCK
+    - -DFEATURE_NETLOGGER
+    - -DFEATURE_HIDE_PACKET
+    - -D__KERNEL__
+    - -DMODULE
+    - -DKBUILD_BASENAME="custom"
+    - -DKBUILD_MODNAME="custom"
+    - -I../include/
+    - -I../../linux-6.12/arch/x86/include
+    - -I../../linux-6.12/arch/x86/include/uapi
+    - -I../../linux-6.12/arch/x86/include/generated
+    - -I../../linux-6.12/arch/x86/include/generated/uapi
+    - -I../../linux-6.12/include
+    - -I../../linux-6.12/include/uapi
+    - -I../../linux-6.12/include/generated
+    - -I../../linux-6.12/include/generated/uapi
+    - -I../../linux-6.12/include/linux/kconfig.h
+    - -I../../linux-6.12/include/linux/compiler_types.h

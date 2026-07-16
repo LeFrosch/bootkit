@@ -1,0 +1,7 @@
+*
+share/*
+
+# explicit files to not ignore
+!.gitignore
+!Makefile
+!share/.gitkeep

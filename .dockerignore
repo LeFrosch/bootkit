@@ -1,0 +1,8 @@
+.git/
+VM/
+
+# build directories
+build/
+srcs/uefi/build/
+srcs/rkctl/build/
+srcs/module/build/
