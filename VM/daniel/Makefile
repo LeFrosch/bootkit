@@ -19,7 +19,7 @@ QEMU_FLAGS := \
 UNAME := $(shell uname -s)
 
 ifeq ($(UNAME), Darwin)
-	EDK2_FW    := /opt/homebrew/Cellar/qemu/11.0.1/share/qemu/edk2-x86_64-code.fd
+	EDK2_FW    := /opt/homebrew/Cellar/qemu/11.0.2/share/qemu/edk2-x86_64-code.fd
 	QEMU_FLAGS += -drive "format=raw,file=$(EDK2_FW),if=pflash,readonly=on" -machine q35
 else ifeq ($(UNAME), Linux)
 	EDK2_FW    := /usr/share/OVMF/OVMF_CODE.fd

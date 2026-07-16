@@ -4,25 +4,27 @@ HDRS := $(wildcard *.h) $(wildcard ../include/*.h)
 # docker build ################################################################
 BUILD_DIR  := build
 EDIR       := /build/efi
-IDIR       := /build/init
 MOUNT      := /build/application
 
 DOCKER_RUN = docker run --rm --platform linux/amd64 \
 	-v $(realpath .)/$(BUILD_DIR):$(MOUNT) \
-	-v $(realpath ..)/init:$(IDIR) \
 	-w $(MOUNT) gnu-efi-amd64
 
 docker-image:
 	$(MAKE) -C $(realpath $(CURDIR)/../..) efi
 
 $(BUILD_DIR)/app.efi: $(SRCS) $(HDRS) docker-image
+	$(MAKE) -C ../init all
 	@mkdir -p $(BUILD_DIR)
 	@cp -f -r $(SRCS) $(HDRS) Makefile $(BUILD_DIR)	
+	@cp -f ../init/build/init.h $(BUILD_DIR)
 	$(DOCKER_RUN) make -j8 app.efi
 
 $(BUILD_DIR)/efi.iso: $(SRCS) $(HDRS) docker-image
+	$(MAKE) -C ../init all
 	@mkdir -p $(BUILD_DIR)
 	@cp -f -r $(SRCS) $(HDRS) Makefile $(BUILD_DIR)
+	@cp -f ../init/build/init.h $(BUILD_DIR)
 	$(DOCKER_RUN) make -j8 efi.iso
 	
 # regular make build ##########################################################
@@ -53,15 +55,10 @@ efi.iso: efi.img
 	@cp $< iso
 	xorriso -as mkisofs -R -f -e $< -no-emul-boot -o $@ iso
 
-# init archive build ##########################################################
-init.h:
-	$(MAKE) -C $(IDIR) init.h
-	@cp $(IDIR)/init.h .
-
 # housekeeping ################################################################
 clean:
 	rm -rf $(BUILD_DIR) 
 
 all: $(BUILD_DIR)/app.efi $(BUILD_DIR)/efi.iso
 
-.PHONY: all clean docker-image init.h
+.PHONY: all clean docker-image

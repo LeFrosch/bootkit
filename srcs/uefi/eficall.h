@@ -3,7 +3,9 @@
 #include <efi.h>
 #include <efilib.h>
 
-#define EFI_WRAPPER STATIC inline
+#include "utils.h"
+
+#define EFI_WRAPPER STATIC inline __attribute__((unused))
 
 EFI_WRAPPER EFI_STATUS EfiImageLoad(
     IN BOOLEAN BootPolicy,
@@ -75,11 +77,11 @@ EFI_WRAPPER EFI_STATUS EfiRegisterProtocolNotify(
 EFI_WRAPPER EFI_STATUS EfiCreateEvent(
     IN UINT32 Type,
     IN EFI_TPL NotifyTpl,
-    IN EFI_EVENT_NOTIFY NotifyFunction, 
+    IN MSAPI EFI_EVENT_NOTIFY NotifyFunction, 
     IN VOID *NotifyContext OPTIONAL,
     OUT EFI_EVENT *Event OPTIONAL
 ) {
-    return uefi_call_wrapper(BS->CreateEvent, 5, Type, NotifyTpl, NotifyFunction, NotifyContext, Event);
+    return uefi_call_wrapper(BS->CreateEvent, 5, (UINT64)Type, (UINT64)NotifyTpl, (UINT64)NotifyFunction, (UINT64)NotifyContext, (UINT64)Event);
 }
 
 EFI_WRAPPER EFI_STATUS EfiInstallProtocolInterface(
@@ -125,17 +127,6 @@ EFI_WRAPPER EFI_STATUS EfiOpenFile(
     IN UINT64 Attributes
 ) {
     return uefi_call_wrapper(This->Open, 5, This, NewHandle, FileName, OpenMode, Attributes);
-}
-
-/**
- * FILE_PROTOCOL.
- *
- * Closes a specified file handle.
- */
-EFI_WRAPPER EFI_STATUS EfiCloseFile(
-    IN EFI_FILE* This
-) {
-    return uefi_call_wrapper(This->Close, 1, This);
 }
 
 EFI_WRAPPER VOID EfiCopyMem(
